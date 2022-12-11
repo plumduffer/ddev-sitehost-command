@@ -1,0 +1,102 @@
+#!/bin/bash
+
+if [[ ! -f "${DDEV_APPROOT}/.env.sitehost" ]]; then
+    echo ".env.sitehost needs to exist at the app root with the format:
+
+SITEHOST_SSH_IP=
+SITEHOST_SSH_USER=
+SITEHOST_SSH_PASSWORD=
+SITEHOST_DB_NAME=
+SITEHOST_DB_USER=
+SITEHOST_DB_PASSWORD="
+exit
+fi
+
+source "${DDEV_APPROOT}/.env.sitehost"
+
+if [[ $1 == "db" ]]; then
+    [ -z "${SITEHOST_SSH_USER}" ] && echo "SITEHOST_SSH_USER is required"
+    [ -z "${SITEHOST_SSH_IP}" ] && echo "SITEHOST_SSH_IP is required"
+    [ -z "${SITEHOST_SSH_PASSWORD}" ] && echo "SITEHOST_SSH_PASSWORD is required"
+    [ -z "${SITEHOST_DB_NAME}" ] && echo "SITEHOST_DB_NAME is required"
+    [ -z "${SITEHOST_DB_USER}" ] && echo "SITEHOST_DB_USER is required"
+    [ -z "${SITEHOST_DB_PASSWORD}" ] && echo "SITEHOST_DB_PASSWORD is required"
+
+    ([ -z "${SITEHOST_SSH_IP}" ] || [ -z "${SITEHOST_SSH_USER}" ] || [ -z "${SITEHOST_SSH_PASSWORD}" ] ||
+    [ -z "${SITEHOST_DB_NAME}" ] || [ -z "${SITEHOST_DB_USER}" ] || [ -z "${SITEHOST_DB_PASSWORD}" ]) && exit
+
+    FILENAME_TIME=$(date +%s)
+    FILENAME_DB=${DDEV_APPROOT}/${FILENAME_TIME}_db.sql
+
+    echo "Downloading database from production..."
+
+    echo 'set timeout -1
+    log_user 0
+    spawn bash -c "ssh '${SITEHOST_SSH_USER}'@'${SITEHOST_SSH_IP}' \"mysqldump -u '${SITEHOST_DB_USER}' -p '${SITEHOST_DB_NAME}' -p'${SITEHOST_DB_PASSWORD}' --column-statistics=0 --no-tablespaces\" > '$FILENAME_DB'"
+    expect {
+        "'${SITEHOST_SSH_USER}'@'${SITEHOST_SSH_IP}\''s password:" {
+            send "'${SITEHOST_SSH_PASSWORD}'\r"
+            expect eof
+        }
+    }
+    ' | expect
+
+    echo "Importing database into DDEV..."
+
+    ddev import-db --target-db=db --src=${FILENAME_DB}
+
+    rm ${FILENAME_DB}
+fi
+
+if [[ $1 == "ssh" ]]; then
+    [ -z "${SITEHOST_SSH_USER}" ] && echo "SITEHOST_SSH_USER is required"
+    [ -z "${SITEHOST_SSH_IP}" ] && echo "SITEHOST_SSH_IP is required"
+
+    ([ -z "${SITEHOST_SSH_IP}" ] || [ -z "${SITEHOST_SSH_USER}" ]) && exit
+
+    echo "
+Password will need to be provided if you haven't enabled your SSH key for this site on Sitehost.
+This is because you can't take control of a shell spawned by the expect command line tool.
+Only the automatic commands like 'db' and 'assets' can take advantage of putting the password in for you.
+"
+
+   ssh ${SITEHOST_SSH_USER}@${SITEHOST_SSH_IP}
+fi
+
+if [[ $1 == "assets" ]]; then
+    [ -z "${SITEHOST_SSH_USER}" ] && echo "SITEHOST_SSH_USER is required"
+    [ -z "${SITEHOST_SSH_IP}" ] && echo "SITEHOST_SSH_IP is required"
+    [ -z "${SITEHOST_SSH_PASSWORD}" ] && echo "SITEHOST_SSH_PASSWORD is required"
+
+    ([ -z "${SITEHOST_SSH_IP}" ] || [ -z "${SITEHOST_SSH_USER}" ] || [ -z "${SITEHOST_SSH_PASSWORD}" ]) && exit
+
+    FILENAME_TIME=$(date +%s)
+    FILENAME_ASSETS_LIST=${DDEV_APPROOT}/${FILENAME_TIME}_assets
+    PUBLIC_DIR=/container/application/${DDEV_DOCROOT}
+
+    echo 'set timeout -1
+    log_user 0
+    spawn bash -c "ssh '${SITEHOST_SSH_USER}'@'${SITEHOST_SSH_IP}' \"cd '${PUBLIC_DIR}' && git ls-files -o -i --exclude-standard --directory '\'':!:cpresources/'\'' . '\'':!:_resources'\''\" > '${FILENAME_ASSETS_LIST}'"
+    expect {
+        "'${SITEHOST_SSH_USER}'@'${SITEHOST_SSH_IP}\''s password:" {
+            send "'${SITEHOST_SSH_PASSWORD}'\r"
+            expect eof
+        }
+    }' | expect
+
+    while read p; do
+        TRIMMED=$(echo "$p" | sed 's:/*$::')
+        echo 'set timeout -1
+        log_user 0
+        spawn rsync -auv '${SITEHOST_SSH_USER}'@'${SITEHOST_SSH_IP}':'${PUBLIC_DIR}'/'${TRIMMED}' '${DDEV_APPROOT}/${DDEV_DOCROOT}'
+        log_user 1
+        expect {
+            "'${SITEHOST_SSH_USER}'@'${SITEHOST_SSH_IP}\''s password:" {
+                send "'${SITEHOST_SSH_PASSWORD}'\r"
+                expect eof
+            }
+        }' | expect
+    done <${FILENAME_ASSETS_LIST}
+
+    rm $FILENAME_ASSETS_LIST
+fi
