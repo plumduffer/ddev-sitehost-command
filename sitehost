@@ -90,6 +90,11 @@ if [ $1 == "db" ]; then
     ddev import-db --target-db=db --src=${FILENAME_DB}
 
     rm ${FILENAME_DB}
+
+    if [ "$DDEV_PROJECT_TYPE" = "craftcms" ]; then
+        ddev craft clear-caches/all
+    fi
+
     exit
 fi
 
