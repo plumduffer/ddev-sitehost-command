@@ -1,16 +1,26 @@
 #!/bin/bash
 
 if [[ ! -f "${DDEV_APPROOT}/.env.sitehost" ]]; then
-    echo ".env.sitehost needs to exist at the app root with the format:
-
-SITEHOST_SSH_IP=
-SITEHOST_SSH_USER=
-SITEHOST_SSH_PASSWORD=
-SITEHOST_DB_NAME=
-SITEHOST_DB_USER=
-SITEHOST_DB_PASSWORD="
-exit
+    echo -e ".env.sitehost needs to exist at the app root with the format:\n\nSITEHOST_SSH_IP=\nSITEHOST_SSH_USER=\nSITEHOST_SSH_PASSWORD=\nSITEHOST_DB_NAME=\nSITEHOST_DB_USER=\nSITEHOST_DB_PASSWORD=\n"
 fi
+
+while [[ ! -f "${DDEV_APPROOT}/.env.sitehost" ]]; do
+    read -r -p "Would you like to create a .env.sitehost file now? [Y/n] " response
+    case $response in
+        [yY][eE][sS]|[yY]|"")
+            echo -e "SITEHOST_SSH_IP=\nSITEHOST_SSH_USER=\nSITEHOST_SSH_PASSWORD=\nSITEHOST_DB_NAME=\nSITEHOST_DB_USER=\nSITEHOST_DB_PASSWORD=" > "${DDEV_APPROOT}/.env.sitehost"
+            echo -e "\nCreated .env.sitehost file ✅\nPlease fill out the required variables and run this command again.\n"
+            break
+            ;;
+        [nN][oO]|[nN])
+            echo -e "\nExiting without creating .env.sitehost file."
+            exit 1
+            ;;
+        *)
+            echo -e "\n⚠️  Please choose yes or no ⚠️\n"
+            ;;
+    esac
+done
 
 source "${DDEV_APPROOT}/.env.sitehost"
 
