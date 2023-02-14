@@ -53,6 +53,22 @@ function check_env_vars {
 if [ $1 == "db" ]; then
     check_env_vars "SITEHOST_SSH_IP" "SITEHOST_SSH_USER" "SITEHOST_SSH_PASSWORD" "SITEHOST_DB_NAME" "SITEHOST_DB_USER" "SITEHOST_DB_PASSWORD"
 
+    while ! echo "$*" | grep -q "\-y"; do
+        read -r -p $'\nThis will drop the local \033[4mdb\033[0m database. Continue? [y/N] ' dropdb
+        case $dropdb in
+            [yY][eE][sS]|[yY])
+                break
+                ;;
+            [nN][oO]|[nN]|"")
+                echo -e "\n\033[38;5;208mExiting without importing database.\033[0m\n"
+                exit 1
+                ;;
+            *)
+                echo -e "\n⚠️  \033[38;5;208mPlease choose yes or no\033[0m ⚠️"
+                ;;
+        esac
+    done
+
     FILENAME_TIME=$(date +%s)
     FILENAME_DB=${DDEV_APPROOT}/${FILENAME_TIME}_db.sql
 
