@@ -1,12 +1,12 @@
 #!/bin/bash
 
 # Warn if .env.sitehost doesn't exist
-if [[ ! -f "${DDEV_APPROOT}/.env.sitehost" ]]; then
+if [ ! -f "${DDEV_APPROOT}/.env.sitehost" ]; then
     echo -e ".env.sitehost needs to exist at the app root with the format:\n\nSITEHOST_SSH_IP=\nSITEHOST_SSH_USER=\nSITEHOST_SSH_PASSWORD=\nSITEHOST_DB_NAME=\nSITEHOST_DB_USER=\nSITEHOST_DB_PASSWORD=\n"
 fi
 
 # Offer to create .env.sitehost if it doesn't exist
-while [[ ! -f "${DDEV_APPROOT}/.env.sitehost" ]]; do
+while [ ! -f "${DDEV_APPROOT}/.env.sitehost" ]; do
     read -r -p "Would you like to create a .env.sitehost file now? [Y/n] " response
     case $response in
         [yY][eE][sS]|[yY]|"")
@@ -26,6 +26,11 @@ done
 
 # Load .env.sitehost variables
 source "${DDEV_APPROOT}/.env.sitehost"
+
+if [ $# -eq 0 ] || [ $1 == "help" ]; then
+    echo -e "\nHelps you interact with Sitehost from DDEV.\nRepo: https://github.com/plumduffer/DDEV-Sitehost-Command\n\nUsage:\n   ddev sitehost [command]\n\nAvailable Commands:\n   assets        Syncs git ignored files from the public directory.\n   db            Clones the database and imports it into DDEV.\n   ssh           Starts an ssh session.\n"
+    exit 1
+fi
 
 if [[ $1 == "db" ]]; then
     [ -z "${SITEHOST_SSH_USER}" ] && echo "SITEHOST_SSH_USER is required"
@@ -59,6 +64,7 @@ if [[ $1 == "db" ]]; then
     ddev import-db --target-db=db --src=${FILENAME_DB}
 
     rm ${FILENAME_DB}
+    exit 1
 fi
 
 if [[ $1 == "ssh" ]]; then
@@ -73,7 +79,8 @@ This is because you can't take control of a shell spawned by the expect command 
 Only the automatic commands like 'db' and 'assets' can take advantage of putting the password in for you.
 "
 
-   ssh ${SITEHOST_SSH_USER}@${SITEHOST_SSH_IP}
+    ssh ${SITEHOST_SSH_USER}@${SITEHOST_SSH_IP}
+    exit 1
 fi
 
 if [[ $1 == "assets" ]]; then
@@ -112,4 +119,5 @@ if [[ $1 == "assets" ]]; then
     done <${FILENAME_ASSETS_LIST}
 
     rm $FILENAME_ASSETS_LIST
+    exit 1
 fi
