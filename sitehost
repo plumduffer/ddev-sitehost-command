@@ -2,7 +2,7 @@
 
 # Warn if .env.sitehost doesn't exist
 if [ ! -f "${DDEV_APPROOT}/.env.sitehost" ]; then
-    echo -e "\n.env.sitehost needs to exist at the app root with the format:\n\nSITEHOST_SSH_IP=\nSITEHOST_SSH_USER=\nSITEHOST_SSH_PASSWORD=\nSITEHOST_DB_NAME=\nSITEHOST_DB_USER=\nSITEHOST_DB_PASSWORD=\n"
+    echo -e "\n\033[38;5;208m.env.sitehost needs to exist at the app root with the format:\033[0m\n\n\033[0;36mSITEHOST_SSH_IP=\nSITEHOST_SSH_USER=\nSITEHOST_SSH_PASSWORD=\nSITEHOST_DB_NAME=\nSITEHOST_DB_USER=\nSITEHOST_DB_PASSWORD=\033[0m\n"
 fi
 
 # Offer to create .env.sitehost if it doesn't exist
@@ -11,15 +11,15 @@ while [ ! -f "${DDEV_APPROOT}/.env.sitehost" ]; do
     case $response in
         [yY][eE][sS]|[yY]|"")
             echo -e "SITEHOST_SSH_IP=\nSITEHOST_SSH_USER=\nSITEHOST_SSH_PASSWORD=\nSITEHOST_DB_NAME=\nSITEHOST_DB_USER=\nSITEHOST_DB_PASSWORD=" > "${DDEV_APPROOT}/.env.sitehost"
-            echo -e "\nCreated .env.sitehost file ✅\nPlease fill out the required variables and run this command again.\n"
+            echo -e "\n\033[0;32mCreated .env.sitehost file\033[0m ✅\n\033[38;5;208mPlease fill out the required variables and run this command again.\033[0m\n"
             exit
             ;;
         [nN][oO]|[nN])
-            echo -e "\nExiting without creating .env.sitehost file.\n"
+            echo -e "\n\033[38;5;208mExiting without creating .env.sitehost file.\033[0m\n"
             exit 1
             ;;
         *)
-            echo -e "\n⚠️  Please choose yes or no ⚠️\n"
+            echo -e "\n⚠️  \033[38;5;208mPlease choose yes or no\033[0m ⚠️\n"
             ;;
     esac
 done
@@ -41,9 +41,9 @@ function check_env_vars {
     done
 
     if [ ${#missing_vars[@]} -ne 0 ]; then
-        echo -e "\nThe following environment variables are required for this command but are not set:\n"
+        echo -e "\n\033[38;5;208mThe following environment variables are required for this command but are not set:\033[0m\n"
         for var in "${missing_vars[@]}"; do
-            echo "$var"
+            echo -e "\033[0;36m$var\033[0m"
         done
         echo ""
         exit 1
@@ -56,7 +56,7 @@ if [ $1 == "db" ]; then
     FILENAME_TIME=$(date +%s)
     FILENAME_DB=${DDEV_APPROOT}/${FILENAME_TIME}_db.sql
 
-    echo "Downloading database from production..."
+    echo -e "\033[38;5;208mDownloading database from production...\033[0m"
 
     echo 'set timeout -1
     log_user 0
@@ -69,7 +69,7 @@ if [ $1 == "db" ]; then
     }
     ' | expect
 
-    echo "Importing database into DDEV..."
+    echo -e "\033[38;5;208mImporting database into DDEV...\033[0m"
 
     ddev import-db --target-db=db --src=${FILENAME_DB}
 
@@ -80,7 +80,7 @@ fi
 if [ $1 == "ssh" ]; then
     check_env_vars "SITEHOST_SSH_IP" "SITEHOST_SSH_USER"
 
-    echo -e "\nPassword will need to be provided if you haven't enabled your SSH key for this site on Sitehost.\nThis is because you can't take control of a shell spawned by the expect command line tool.\nOnly the automatic commands like 'db' and 'assets' can take advantage of putting the password in for you.\n"
+    echo -e "\n\033[38;5;208mPassword will need to be provided if you haven't enabled your SSH key for this site on Sitehost.\nThis is because you can't take control of a shell spawned by the expect command line tool.\nOnly the automatic commands like 'db' and 'assets' can take advantage of putting the password in for you.\033[0m\n"
 
     ssh ${SITEHOST_SSH_USER}@${SITEHOST_SSH_IP}
     exit
