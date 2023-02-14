@@ -2,7 +2,7 @@
 
 # Warn if .env.sitehost doesn't exist
 if [ ! -f "${DDEV_APPROOT}/.env.sitehost" ]; then
-    echo -e ".env.sitehost needs to exist at the app root with the format:\n\nSITEHOST_SSH_IP=\nSITEHOST_SSH_USER=\nSITEHOST_SSH_PASSWORD=\nSITEHOST_DB_NAME=\nSITEHOST_DB_USER=\nSITEHOST_DB_PASSWORD=\n"
+    echo -e "\n.env.sitehost needs to exist at the app root with the format:\n\nSITEHOST_SSH_IP=\nSITEHOST_SSH_USER=\nSITEHOST_SSH_PASSWORD=\nSITEHOST_DB_NAME=\nSITEHOST_DB_USER=\nSITEHOST_DB_PASSWORD=\n"
 fi
 
 # Offer to create .env.sitehost if it doesn't exist
@@ -32,16 +32,26 @@ if [ $# -eq 0 ] || [ $1 == "help" ]; then
     exit
 fi
 
-if [[ $1 == "db" ]]; then
-    [ -z "${SITEHOST_SSH_USER}" ] && echo "SITEHOST_SSH_USER is required"
-    [ -z "${SITEHOST_SSH_IP}" ] && echo "SITEHOST_SSH_IP is required"
-    [ -z "${SITEHOST_SSH_PASSWORD}" ] && echo "SITEHOST_SSH_PASSWORD is required"
-    [ -z "${SITEHOST_DB_NAME}" ] && echo "SITEHOST_DB_NAME is required"
-    [ -z "${SITEHOST_DB_USER}" ] && echo "SITEHOST_DB_USER is required"
-    [ -z "${SITEHOST_DB_PASSWORD}" ] && echo "SITEHOST_DB_PASSWORD is required"
+function check_env_vars {
+    local missing_vars=()
+    for var in "$@"; do
+        if [ -z "${!var}" ]; then
+            missing_vars+=("$var")
+        fi
+    done
 
-    ([ -z "${SITEHOST_SSH_IP}" ] || [ -z "${SITEHOST_SSH_USER}" ] || [ -z "${SITEHOST_SSH_PASSWORD}" ] ||
-    [ -z "${SITEHOST_DB_NAME}" ] || [ -z "${SITEHOST_DB_USER}" ] || [ -z "${SITEHOST_DB_PASSWORD}" ]) && exit
+    if [ ${#missing_vars[@]} -ne 0 ]; then
+        echo -e "\nThe following environment variables are required for this command but are not set:\n"
+        for var in "${missing_vars[@]}"; do
+            echo "$var"
+        done
+        echo ""
+        exit 1
+    fi
+}
+
+if [ $1 == "db" ]; then
+    check_env_vars "SITEHOST_SSH_IP" "SITEHOST_SSH_USER" "SITEHOST_SSH_PASSWORD" "SITEHOST_DB_NAME" "SITEHOST_DB_USER" "SITEHOST_DB_PASSWORD"
 
     FILENAME_TIME=$(date +%s)
     FILENAME_DB=${DDEV_APPROOT}/${FILENAME_TIME}_db.sql
@@ -67,28 +77,17 @@ if [[ $1 == "db" ]]; then
     exit
 fi
 
-if [[ $1 == "ssh" ]]; then
-    [ -z "${SITEHOST_SSH_USER}" ] && echo "SITEHOST_SSH_USER is required"
-    [ -z "${SITEHOST_SSH_IP}" ] && echo "SITEHOST_SSH_IP is required"
+if [ $1 == "ssh" ]; then
+    check_env_vars "SITEHOST_SSH_IP" "SITEHOST_SSH_USER"
 
-    ([ -z "${SITEHOST_SSH_IP}" ] || [ -z "${SITEHOST_SSH_USER}" ]) && exit
-
-    echo "
-Password will need to be provided if you haven't enabled your SSH key for this site on Sitehost.
-This is because you can't take control of a shell spawned by the expect command line tool.
-Only the automatic commands like 'db' and 'assets' can take advantage of putting the password in for you.
-"
+    echo -e "\nPassword will need to be provided if you haven't enabled your SSH key for this site on Sitehost.\nThis is because you can't take control of a shell spawned by the expect command line tool.\nOnly the automatic commands like 'db' and 'assets' can take advantage of putting the password in for you.\n"
 
     ssh ${SITEHOST_SSH_USER}@${SITEHOST_SSH_IP}
     exit
 fi
 
-if [[ $1 == "assets" ]]; then
-    [ -z "${SITEHOST_SSH_USER}" ] && echo "SITEHOST_SSH_USER is required"
-    [ -z "${SITEHOST_SSH_IP}" ] && echo "SITEHOST_SSH_IP is required"
-    [ -z "${SITEHOST_SSH_PASSWORD}" ] && echo "SITEHOST_SSH_PASSWORD is required"
-
-    ([ -z "${SITEHOST_SSH_IP}" ] || [ -z "${SITEHOST_SSH_USER}" ] || [ -z "${SITEHOST_SSH_PASSWORD}" ]) && exit
+if [ $1 == "assets" ]; then
+    check_env_vars "SITEHOST_SSH_IP" "SITEHOST_SSH_USER" "SITEHOST_SSH_PASSWORD"
 
     FILENAME_TIME=$(date +%s)
     FILENAME_ASSETS_LIST=${DDEV_APPROOT}/${FILENAME_TIME}_assets
