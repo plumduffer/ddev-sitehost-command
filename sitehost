@@ -12,7 +12,7 @@ while [ ! -f "${DDEV_APPROOT}/.env.sitehost" ]; do
         [yY][eE][sS]|[yY]|"")
             echo -e "SITEHOST_SSH_IP=\nSITEHOST_SSH_USER=\nSITEHOST_SSH_PASSWORD=\nSITEHOST_DB_NAME=\nSITEHOST_DB_USER=\nSITEHOST_DB_PASSWORD=" > "${DDEV_APPROOT}/.env.sitehost"
             echo -e "\nCreated .env.sitehost file ✅\nPlease fill out the required variables and run this command again.\n"
-            exit 1
+            exit
             ;;
         [nN][oO]|[nN])
             echo -e "\nExiting without creating .env.sitehost file.\n"
@@ -29,7 +29,7 @@ source "${DDEV_APPROOT}/.env.sitehost"
 
 if [ $# -eq 0 ] || [ $1 == "help" ]; then
     echo -e "\nHelps you interact with Sitehost from DDEV.\nRepo: https://github.com/plumduffer/DDEV-Sitehost-Command\n\nUsage:\n   ddev sitehost [command]\n\nAvailable Commands:\n   assets        Syncs git ignored files from the public directory.\n   db            Clones the database and imports it into DDEV.\n   ssh           Starts an ssh session.\n"
-    exit 1
+    exit
 fi
 
 if [[ $1 == "db" ]]; then
@@ -64,7 +64,7 @@ if [[ $1 == "db" ]]; then
     ddev import-db --target-db=db --src=${FILENAME_DB}
 
     rm ${FILENAME_DB}
-    exit 1
+    exit
 fi
 
 if [[ $1 == "ssh" ]]; then
@@ -80,7 +80,7 @@ Only the automatic commands like 'db' and 'assets' can take advantage of putting
 "
 
     ssh ${SITEHOST_SSH_USER}@${SITEHOST_SSH_IP}
-    exit 1
+    exit
 fi
 
 if [[ $1 == "assets" ]]; then
@@ -119,5 +119,5 @@ if [[ $1 == "assets" ]]; then
     done <${FILENAME_ASSETS_LIST}
 
     rm $FILENAME_ASSETS_LIST
-    exit 1
+    exit
 fi
