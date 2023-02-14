@@ -1,19 +1,21 @@
 #!/bin/bash
 
+# Warn if .env.sitehost doesn't exist
 if [[ ! -f "${DDEV_APPROOT}/.env.sitehost" ]]; then
     echo -e ".env.sitehost needs to exist at the app root with the format:\n\nSITEHOST_SSH_IP=\nSITEHOST_SSH_USER=\nSITEHOST_SSH_PASSWORD=\nSITEHOST_DB_NAME=\nSITEHOST_DB_USER=\nSITEHOST_DB_PASSWORD=\n"
 fi
 
+# Offer to create .env.sitehost if it doesn't exist
 while [[ ! -f "${DDEV_APPROOT}/.env.sitehost" ]]; do
     read -r -p "Would you like to create a .env.sitehost file now? [Y/n] " response
     case $response in
         [yY][eE][sS]|[yY]|"")
             echo -e "SITEHOST_SSH_IP=\nSITEHOST_SSH_USER=\nSITEHOST_SSH_PASSWORD=\nSITEHOST_DB_NAME=\nSITEHOST_DB_USER=\nSITEHOST_DB_PASSWORD=" > "${DDEV_APPROOT}/.env.sitehost"
             echo -e "\nCreated .env.sitehost file ✅\nPlease fill out the required variables and run this command again.\n"
-            break
+            exit 1
             ;;
         [nN][oO]|[nN])
-            echo -e "\nExiting without creating .env.sitehost file."
+            echo -e "\nExiting without creating .env.sitehost file.\n"
             exit 1
             ;;
         *)
@@ -22,6 +24,7 @@ while [[ ! -f "${DDEV_APPROOT}/.env.sitehost" ]]; do
     esac
 done
 
+# Load .env.sitehost variables
 source "${DDEV_APPROOT}/.env.sitehost"
 
 if [[ $1 == "db" ]]; then
