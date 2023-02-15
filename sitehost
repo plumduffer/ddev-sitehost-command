@@ -27,6 +27,20 @@ done
 # Load .env.sitehost variables
 source "${DDEV_APPROOT}/.env.sitehost"
 
+# Set environment according to interact with
+VARIABLE_SUFFIX=""
+if [[ "$@" == *"--staging"* ]]; then
+    # if so, set the suffix to _STAGING
+    VARIABLE_SUFFIX="_STAGING"
+fi
+
+SSH_IP="SITEHOST_SSH_IP${VARIABLE_SUFFIX}"
+SSH_USER="SITEHOST_SSH_USER${VARIABLE_SUFFIX}"
+SSH_PASSWORD="SITEHOST_SSH_PASSWORD${VARIABLE_SUFFIX}"
+DB_NAME="SITEHOST_DB_NAME${VARIABLE_SUFFIX}"
+DB_USER="SITEHOST_DB_USER${VARIABLE_SUFFIX}"
+DB_PASSWORD="SITEHOST_DB_PASSWORD${VARIABLE_SUFFIX}"
+
 if [ $# -eq 0 ] || [ $1 == "help" ]; then
     echo -e "\nHelps you interact with Sitehost from DDEV.\nRepo: https://github.com/plumduffer/DDEV-Sitehost-Command\n\nUsage:\n   ddev sitehost [command]\n\nAvailable Commands:\n   assets        Syncs git ignored files from the public directory.\n   db            Clones the database and imports it into DDEV.\n   ssh           Starts an ssh session.\n"
     exit
@@ -51,7 +65,7 @@ function check_env_vars {
 }
 
 if [ $1 == "db" ]; then
-    check_env_vars "SITEHOST_SSH_IP" "SITEHOST_SSH_USER" "SITEHOST_SSH_PASSWORD" "SITEHOST_DB_NAME" "SITEHOST_DB_USER" "SITEHOST_DB_PASSWORD"
+    check_env_vars "$SSH_IP" "$SSH_USER" "$SSH_PASSWORD" "$DB_NAME" "$DB_USER" "$DB_PASSWORD"
 
     while ! echo "$*" | grep -q "\-y"; do
         read -r -p $'\nThis will drop the local \033[4mdb\033[0m database. Continue? [y/N] ' dropdb
@@ -76,10 +90,10 @@ if [ $1 == "db" ]; then
 
     echo 'set timeout -1
     log_user 0
-    spawn bash -c "ssh '${SITEHOST_SSH_USER}'@'${SITEHOST_SSH_IP}' \"mysqldump -u '${SITEHOST_DB_USER}' -p '${SITEHOST_DB_NAME}' -p'${SITEHOST_DB_PASSWORD}' --column-statistics=0 --no-tablespaces\" > '$FILENAME_DB'"
+    spawn bash -c "ssh '${!SSH_USER}'@'${!SSH_IP}' \"mysqldump -u '${!DB_USER}' -p '${!DB_NAME}' -p'${!DB_PASSWORD}' --column-statistics=0 --no-tablespaces\" > '$FILENAME_DB'"
     expect {
-        "'${SITEHOST_SSH_USER}'@'${SITEHOST_SSH_IP}\''s password:" {
-            send "'${SITEHOST_SSH_PASSWORD}'\r"
+        "'${!SSH_USER}'@'${!SSH_IP}\''s password:" {
+            send "'${!SSH_PASSWORD}'\r"
             expect eof
         }
     }
@@ -99,16 +113,16 @@ if [ $1 == "db" ]; then
 fi
 
 if [ $1 == "ssh" ]; then
-    check_env_vars "SITEHOST_SSH_IP" "SITEHOST_SSH_USER"
+    check_env_vars "$SSH_IP" "$SSH_USER"
 
     echo -e "\n\033[38;5;208mPassword will need to be provided if you haven't enabled your SSH key for this site on Sitehost.\nThis is because you can't take control of a shell spawned by the expect command line tool.\nOnly the automatic commands like 'db' and 'assets' can take advantage of putting the password in for you.\033[0m\n"
 
-    ssh ${SITEHOST_SSH_USER}@${SITEHOST_SSH_IP}
+    ssh ${!SSH_USER}@${!SSH_IP}
     exit
 fi
 
 if [ $1 == "assets" ]; then
-    check_env_vars "SITEHOST_SSH_IP" "SITEHOST_SSH_USER" "SITEHOST_SSH_PASSWORD"
+    check_env_vars "$SSH_IP" "$SSH_USER" "$SSH_PASSWORD"
 
     FILENAME_TIME=$(date +%s)
     FILENAME_ASSETS_LIST=${DDEV_APPROOT}/${FILENAME_TIME}_assets
@@ -118,10 +132,10 @@ if [ $1 == "assets" ]; then
 
     echo 'set timeout -1
     log_user 0
-    spawn bash -c "ssh '${SITEHOST_SSH_USER}'@'${SITEHOST_SSH_IP}' \"cd '${PUBLIC_DIR}' && git ls-files -o -i --exclude-standard --directory '\'':!:cpresources/'\'' . '\'':!:_resources'\''\" > '${FILENAME_ASSETS_LIST}'"
+    spawn bash -c "ssh '${!SSH_USER}'@'${!SSH_IP}' \"cd '${PUBLIC_DIR}' && git ls-files -o -i --exclude-standard --directory '\'':!:cpresources/'\'' . '\'':!:_resources'\''\" > '${FILENAME_ASSETS_LIST}'"
     expect {
-        "'${SITEHOST_SSH_USER}'@'${SITEHOST_SSH_IP}\''s password:" {
-            send "'${SITEHOST_SSH_PASSWORD}'\r"
+        "'${!SSH_USER}'@'${!SSH_IP}\''s password:" {
+            send "'${!SSH_PASSWORD}'\r"
             expect eof
         }
     }' | expect
@@ -137,11 +151,11 @@ if [ $1 == "assets" ]; then
         fi
         echo 'set timeout -1
         log_user 0
-        spawn rsync -auv '${SITEHOST_SSH_USER}'@'${SITEHOST_SSH_IP}':'${PUBLIC_DIR}'/'${TRIMMED}' '${DDEV_APPROOT}/${DDEV_DOCROOT}${ASSET_DIRECTORY}'
+        spawn rsync -auv '${!SSH_USER}'@'${!SSH_IP}':'${PUBLIC_DIR}'/'${TRIMMED}' '${DDEV_APPROOT}/${DDEV_DOCROOT}${ASSET_DIRECTORY}'
         log_user 1
         expect {
-            "'${SITEHOST_SSH_USER}'@'${SITEHOST_SSH_IP}\''s password:" {
-                send "'${SITEHOST_SSH_PASSWORD}'\r"
+            "'${!SSH_USER}'@'${!SSH_IP}\''s password:" {
+                send "'${!SSH_PASSWORD}'\r"
                 expect eof
             }
         }' | expect
