@@ -72,7 +72,7 @@ if [ $1 == "db" ]; then
     FILENAME_TIME=$(date +%s)
     FILENAME_DB=${DDEV_APPROOT}/${FILENAME_TIME}_db.sql
 
-    echo -e "\033[38;5;208mDownloading database from production...\033[0m"
+    echo -e "\033[38;5;208mDownloading database...\033[0m"
 
     echo 'set timeout -1
     log_user 0
@@ -114,6 +114,8 @@ if [ $1 == "assets" ]; then
     FILENAME_ASSETS_LIST=${DDEV_APPROOT}/${FILENAME_TIME}_assets
     PUBLIC_DIR=/container/application/${DDEV_DOCROOT}
 
+    echo -e "\033[38;5;208mGetting file list...\033[0m"
+
     echo 'set timeout -1
     log_user 0
     spawn bash -c "ssh '${SITEHOST_SSH_USER}'@'${SITEHOST_SSH_IP}' \"cd '${PUBLIC_DIR}' && git ls-files -o -i --exclude-standard --directory '\'':!:cpresources/'\'' . '\'':!:_resources'\''\" > '${FILENAME_ASSETS_LIST}'"
@@ -124,11 +126,18 @@ if [ $1 == "assets" ]; then
         }
     }' | expect
 
+    echo -e "\033[38;5;208mSyncing files...\033[0m"
+
     while read p; do
         TRIMMED=$(echo "$p" | sed 's:/*$::')
+        if [[ "$TRIMMED" == *"/"* ]]; then
+            ASSET_DIRECTORY="/${TRIMMED%/*}"
+        else
+            ASSET_DIRECTORY=""
+        fi
         echo 'set timeout -1
         log_user 0
-        spawn rsync -auv '${SITEHOST_SSH_USER}'@'${SITEHOST_SSH_IP}':'${PUBLIC_DIR}'/'${TRIMMED}' '${DDEV_APPROOT}/${DDEV_DOCROOT}'
+        spawn rsync -auv '${SITEHOST_SSH_USER}'@'${SITEHOST_SSH_IP}':'${PUBLIC_DIR}'/'${TRIMMED}' '${DDEV_APPROOT}/${DDEV_DOCROOT}${ASSET_DIRECTORY}'
         log_user 1
         expect {
             "'${SITEHOST_SSH_USER}'@'${SITEHOST_SSH_IP}\''s password:" {
